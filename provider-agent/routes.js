@@ -12,9 +12,15 @@ router.post("/quote", (req, res) => {
 
   res.json({
     request_id,
-    price: 0.000001, // 100 sats
+    price: 0.000001,
     currency: "BSV",
-    x402_payment_request: `x402://provider/${request_id}`
+    x402_payment_request: `x402://provider/${request_id}`,
+    payment_terms: {
+      unit: "per_request",
+      network: "bsv-mainnet",
+      settlement: "onchain",
+      expiry: Date.now() + 5 * 60 * 1000 // quote valid 5 minutes
+    }
   });
 });
 
@@ -27,16 +33,16 @@ router.post("/execute", async (req, res) => {
       return res.status(400).json({ error: "Invalid or missing payment receipt" });
     }
 
-    // Ask the orchestrator to verify the tx (on-chain verification placeholder)
+    // Call orchestrator to verify
     const verifyRes = await axios.post(`${ORCH_URL}/verify`, {
-      txid: payment_receipt.txid
+      txid: payment_receipt.txid,
+      requireConfirmed: false // or true if you want to require confirmations
     });
 
     if (!verifyRes.data || verifyRes.data.valid !== true) {
       return res.status(403).json({ error: "Payment not valid or not confirmed" });
     }
 
-    // Now call the actual service logic
     const result = runService(request_id, payment_receipt);
     return res.json(result);
   } catch (e) {
