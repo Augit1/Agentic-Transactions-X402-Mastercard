@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Agentic Payment Demo</title>
+</head>
+<body>
+  <h1>Agentic Payments Demo</h1>
+  <button onclick="callService()">Call Provider Service</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    function log(msg) {
+      document.getElementById("log").textContent += msg + "\n";
+    }
+
+    async function callService() {
+      log("Calling service...");
+
+      const res = await fetch("http://localhost:4001/call-service", {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      log(JSON.stringify(data, null, 2));
+    }
+  </script>
+</body>
+</html>
