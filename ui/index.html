@@ -14,16 +14,24 @@
       document.getElementById("log").textContent += msg + "\n";
     }
 
-    async function callService() {
-      log("Calling service...");
+	async function callService() {
+		log("Calling service...");
 
-      const res = await fetch("http://localhost:4001/call-service", {
-        method: "POST"
-      });
+		const res = await fetch("http://localhost:4001/call-service", {
+			method: "POST"
+		});
 
-      const data = await res.json();
-      log(JSON.stringify(data, null, 2));
-    }
+		const data = await res.json();
+
+		log("Quote:");
+		log(JSON.stringify(data.quote, null, 2));
+
+		log("Payment:");
+		log(JSON.stringify(data.payment, null, 2));
+
+		log("Result:");
+		log(JSON.stringify(data.result, null, 2));
+	}
   </script>
 </body>
 </html>
