@@ -1,0 +1,15 @@
+{
+  "name": "agentic-transactions-x402-mastercard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:consumer": "node consumer-agent/index.js",
+    "start:provider": "node provider-agent/index.js",
+    "start:orchestrator": "node payment-orchestrator/index.js",
+    "start:ui": "open ui/index.html",
+    "start:all": "npm-run-all -p start:consumer start:provider start:orchestrator start:ui"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
