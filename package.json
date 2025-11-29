@@ -7,7 +7,7 @@
     "start:provider": "node provider-agent/index.js",
     "start:orchestrator": "node payment-orchestrator/index.js",
     "start:ui": "open http://localhost:4001/index.html",
-    "start:frontend": "cd frontend && npm install && npm run dev",
+    "start:frontend": "cd frontend && npx --no-install vite",
     "build:frontend": "cd frontend && npx --no-install vite build",
     "start:all": "npm install && npm-run-all -p start:consumer start:provider start:orchestrator start:frontend start:frontend"
   },
