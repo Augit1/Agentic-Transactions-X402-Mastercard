@@ -1,113 +1,74 @@
 // provider-agent/routes.js
 const express = require("express");
 const axios = require("axios");
+const path = require("path");
 const runService = require("./serviceLogic");
+
+// Load provider config from JSON
+const providerConfig = require(path.join(__dirname, "config/provider.json"));
 
 const router = express.Router();
 const ORCH_URL = "http://localhost:4003";
+const REQUIRE_CONFIRMED = process.env.REQUIRE_CONFIRMED === "true";
 
-// You can also put this in .env for flexibility
-const SERVICE_PRICE_BSV = 0.000001; // 100 sats
-const PROVIDER_BSV_ADDRESS =
-  process.env.PROVIDER_BSV_ADDRESS || "12294K3WwhespS9V2HAPCJUMTLppgjg3Mu";
-
-// ---------- POST /quote (helper, not strictly required by x402) ----------
-router.post("/quote", (req, res) => {
-  const request_id = Date.now().toString();
-
-  res.json({
-    request_id,
-    price: SERVICE_PRICE_BSV,
-    currency: "BSV",
-    x402_payment_request: `x402://provider/${request_id}`,
-    payment_terms: {
-      unit: "per_request",
-      network: "bsv-mainnet",
-      settlement: "onchain",
-      pay_to: PROVIDER_BSV_ADDRESS,
-      expiry: Date.now() + 5 * 60 * 1000, // 5 minutes
-    },
-  });
-});
-
-// ---------- POST /execute (x402-style protected resource) ----------
+// POST /execute (X402-style)
 router.post("/execute", async (req, res) => {
   try {
-    let { request_id, payment_receipt } = req.body;
+    const paymentHeader = req.headers["x-payment"];
+    const { payment_receipt } = req.body || {};
+    const request_id = (req.body && req.body.request_id) || Date.now().toString();
 
-    // Allow provider to generate a request_id if missing
-    if (!request_id) {
-      request_id = Date.now().toString();
-    }
-
-    // Try to parse X-PAYMENT header (base64-encoded JSON)
-    let headerPayment = null;
-    const xPaymentHeader =
-      req.header("X-PAYMENT") || req.header("x-payment") || null;
-
-    if (xPaymentHeader) {
-      try {
-        const decoded = Buffer.from(xPaymentHeader, "base64").toString("utf8");
-        headerPayment = JSON.parse(decoded);
-        // If body payment_receipt is missing, derive from header
-        if (!payment_receipt && headerPayment.txid) {
-          payment_receipt = {
-            txid: headerPayment.txid,
-            amount: headerPayment.amount,
-            payer_agent_id: headerPayment.from || "consumer-1",
-            payee_agent_id: headerPayment.to || "provider-1",
-            signature: headerPayment.signature || "header-signature",
-            status: "PAID",
-          };
-        }
-      } catch (e) {
-        console.warn("Could not parse X-PAYMENT header:", e.message);
-      }
-    }
-
-    // ---------- CASE 1: No payment yet → respond with 402 + PaymentRequirements ----------
-    if (!payment_receipt || !payment_receipt.txid) {
-      const satoshisRequired = Math.round(SERVICE_PRICE_BSV * 1e8);
+    // 1) If no payment header or receipt → send 402 with PaymentRequirements
+    if (!paymentHeader && !payment_receipt) {
+      const priceSats = providerConfig.default_price_sats;
 
       const paymentRequirements = {
         version: "x402-1.0",
         request_id,
-        amount_sats: satoshisRequired,
-        amount_bsv: SERVICE_PRICE_BSV,
-        currency: "BSV",
-        network: "bsv-mainnet",
-        pay_to: PROVIDER_BSV_ADDRESS,
+        amount_sats: priceSats,
+        amount_bsv: priceSats / 1e8,
+        currency: providerConfig.currency,
+        network: providerConfig.network,
+        pay_to: providerConfig.pay_to_address,
         expiry: Date.now() + 5 * 60 * 1000,
-        // In this architecture, the orchestrator is effectively the "facilitator"
         facilitator: {
           pay_endpoint: `${ORCH_URL}/pay`,
-          verify_endpoint: `${ORCH_URL}/verify`,
-        },
+          verify_endpoint: `${ORCH_URL}/verify`
+        }
       };
 
-      // Real HTTP 402 Payment Required + PaymentRequirements body
-      res.status(402);
-      return res.json({
-        error: "ERR_PAYMENT_REQUIRED",
-        paymentRequirements,
+      // X402: respond with 402 + PaymentRequirements
+      return res.status(402).json(paymentRequirements);
+    }
+
+    // 2) If payment header is present, parse it
+    let parsedPayment = payment_receipt;
+    if (paymentHeader && typeof paymentHeader === "string") {
+      try {
+        parsedPayment = JSON.parse(paymentHeader);
+      } catch (e) {
+        console.error("Could not parse X-PAYMENT header as JSON:", e);
+      }
+    }
+
+    if (!parsedPayment || !parsedPayment.txid) {
+      return res.status(400).json({
+        error: "Invalid or missing payment receipt"
       });
     }
 
-    // ---------- CASE 2: We have a payment receipt → verify it ----------
+    // 3) Verify on-chain via orchestrator
     const verifyRes = await axios.post(`${ORCH_URL}/verify`, {
-      txid: payment_receipt.txid,
-      requireConfirmed: false, // or true if you want confirmed-only
+      txid: parsedPayment.txid,
+      requireConfirmed: REQUIRE_CONFIRMED
     });
 
     if (!verifyRes.data || verifyRes.data.valid !== true) {
-      return res
-        .status(403)
-        .json({ error: "Payment not valid or not confirmed" });
+      return res.status(403).json({ error: "Payment not valid or not confirmed" });
     }
 
-    // ---------- Payment verified → run the service ----------
-    const result = runService(request_id, payment_receipt);
-
+    // 4) Payment valid → run service
+    const result = runService(request_id, parsedPayment);
     return res.json(result);
   } catch (e) {
     console.error("Error in /execute:", e);
