@@ -1,9 +1,7 @@
-node_modules/
-package-lock.json
+# Credentials
+.env
+.wif
 
-
-
-#============= Frontend cosas by Fabri :D =============
 # Logs
 logs
 *.log
@@ -12,8 +10,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-node_modules
+node_modules/
 *.local
+package-lock.json
 
 # Editor directories and files
 .vscode/*

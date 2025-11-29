@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@bsv/sdk": "^1.9.11",
     "express": "^5.1.0"
   }
 }
