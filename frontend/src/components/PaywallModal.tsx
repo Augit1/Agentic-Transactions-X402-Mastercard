@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Article, UserSettings, WalletState } from '../types';
+import { type Article, type UserSettings, type WalletState } from '../types';
 import { Zap, AlertTriangle, CheckCircle2, LayoutTemplate, Crown } from 'lucide-react';
 
 interface PaywallModalProps {
@@ -143,9 +143,9 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
           )}
 
           <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-            <span className="flex-shrink mx-4 text-slate-400 text-xs font-medium">OR</span>
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="grow border-t border-slate-200 dark:border-slate-700"></div>
+            <span className="shrink mx-4 text-slate-400 text-xs font-medium">OR</span>
+            <div className="grow border-t border-slate-200 dark:border-slate-700"></div>
           </div>
 
           {/* Option 3: Ads */}
