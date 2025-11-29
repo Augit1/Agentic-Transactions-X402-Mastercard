@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_ARTICLES, INITIAL_SETTINGS, INITIAL_WALLET } from './constants';
-import { Article, UserSettings, WalletState } from './types';
+import { type Article, type UserSettings, type WalletState } from './types';
 import SettingsDrawer from './components/SettingsDrawer';
 import ArticleCard from './components/ArticleCard';
 import PaywallModal from './components/PaywallModal';
 import TaboolaWidget from './components/TaboolaWidget';
-import { Settings, LayoutGrid, ArrowLeft, ShieldCheck, AlertCircle, Crown } from 'lucide-react';
+import JournalismNav from './JournalismNav'; // ⬅️ Importamos el componente de navegación
+import { ArrowLeft, ShieldCheck, AlertCircle, Crown } from 'lucide-react'; // ⬅️ Solo los íconos utilizados en el cuerpo del componente
 
 // Simple hook to persist state to local storage
 function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -24,7 +25,7 @@ function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<Rea
 // Track how an article was accessed
 type AccessMethod = 'paid' | 'ads' | 'subscribed';
 
-export default function App() {
+export default function Journalism() {
   // --- State ---
   const [settings, setSettings] = useStickyState<UserSettings>(INITIAL_SETTINGS, 'user_settings');
   const [wallet, setWallet] = useStickyState<WalletState>(INITIAL_WALLET, 'user_wallet');
@@ -140,28 +141,11 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900">
       
       {/* Navigation Bar */}
-      <nav className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            
-            <div className="flex items-center cursor-pointer" onClick={goHome}>
-               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-indigo-500/30 shadow-lg">
-                   <LayoutGrid className="text-white w-5 h-5" />
-               </div>
-               <span className="font-serif font-bold text-xl tracking-tight">Micro<span className="text-indigo-600">News</span></span>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className={`p-2 rounded-lg transition-colors ${isSettingsOpen ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
-              >
-                <Settings className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <JournalismNav 
+        onGoHome={goHome}
+        isSettingsOpen={isSettingsOpen}
+        onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
+      />
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">

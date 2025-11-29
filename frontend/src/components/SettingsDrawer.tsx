@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserSettings, WalletState } from '../types';
+import { type UserSettings, type WalletState } from '../types';
 import { X, CreditCard, ShieldCheck, Activity, Save, RotateCcw } from 'lucide-react';
 
 interface SettingsDrawerProps {
@@ -58,7 +58,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
       </div>
 
       {/* Wallet Balance Card */}
-      <div className="p-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white mx-4 mt-4 rounded-lg shadow-lg">
+      <div className="p-5 bg-linear-to-r from-indigo-600 to-blue-600 text-white mx-4 mt-4 rounded-lg shadow-lg">
         <div className="flex justify-between items-start mb-4">
           <div>
             <p className="text-xs font-medium text-indigo-200 uppercase tracking-wider">Balance</p>
