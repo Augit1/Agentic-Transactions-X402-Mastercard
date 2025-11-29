@@ -177,7 +177,6 @@ async function checkPayment(txid, requireConfirmed = false) {
 
     console.error("Error in checkPayment:", body || e.message);
 
-    // ⚠️ Hackathon-friendly behavior:
     // If WOC rate-limits us, we *assume* the tx is valid because WE just broadcast it.
     if (status === 429) {
       console.warn("WOC rate limit hit (429). Assuming tx is valid for demo purposes.");
