@@ -1,3 +1,4 @@
+// payment-orchestrator/orchestrator.js
 const mastercard = require("./mastercard-mock");
 const bsv = require("./bsv-adapter");
 
@@ -6,61 +7,75 @@ const events = [];
 
 // POST /pay
 async function pay(req, res) {
-  const {
-    amount,
-    x402_payment_request,
-    payer_agent_id = "consumer-1",
-    payee_agent_id = "provider-1"
-  } = req.body;
-
-  console.log("Received payment request:", x402_payment_request);
-
-  // 1. Mastercard (mock) authorization
-  const auth = mastercard.authorize(amount);
-  if (auth.status !== "APPROVED") {
-    const error = { error: "Authorization failed" };
-
-    events.push({
-      type: "AUTH_FAIL",
-      request: x402_payment_request,
+  try {
+    const {
       amount,
-      timestamp: new Date().toISOString(),
-      details: error
+      x402_payment_request,
+      payer_agent_id = "consumer-1",
+      payee_agent_id = "provider-1"
+    } = req.body;
+
+    console.log("Received payment request:", x402_payment_request);
+
+    // 1. Mastercard (mock) authorization
+    const auth = mastercard.authorize(amount);
+    if (auth.status !== "APPROVED") {
+      const error = { error: "Authorization failed" };
+
+      events.push({
+        type: "AUTH_FAIL",
+        request: x402_payment_request,
+        amount,
+        timestamp: new Date().toISOString(),
+        details: error
+      });
+
+      return res.status(403).json(error);
+    }
+
+    // 2. BSV micropayment via SDK (async)
+    const payment = await bsv.sendPayment("1Dgb9VVaDtUf4Wg7fe6R1H8EASc6sApcds", amount);
+    // payment should be { txid }
+
+    // 3. X402-style receipt
+    const receipt = {
+      txid: payment.txid,
+      amount,
+      payer_agent_id,
+      payee_agent_id,
+      signature: "mock-signature",
+      status: "PAID"
+    };
+
+    // 4. Traceability
+    events.push({
+      type: "PAYMENT",
+      request: x402_payment_request,
+      receipt,
+      timestamp: new Date().toISOString()
     });
 
-    return res.status(403).json(error);
+    return res.json(receipt);
+  } catch (e) {
+    console.error("Error in /pay:", e);
+    return res.status(500).json({ error: "Payment failed", details: e.message });
   }
-
-  // 2. BSV (mock) micropayment
-  const payment = bsv.sendPayment("provider-address", amount);
-
-  // 3. X402-style payment receipt
-  const receipt = {
-    txid: payment.txid,
-    amount,
-    payer_agent_id,
-    payee_agent_id,
-    signature: "mock-signature",
-    status: "PAID"
-  };
-
-  // 4. Traceability: store the event
-  events.push({
-    type: "PAYMENT",
-    request: x402_payment_request,
-    receipt,
-    timestamp: new Date().toISOString()
-  });
-
-  return res.json(receipt);
 }
 
 // POST /verify
-function verify(req, res) {
+// NEW
+async function verify(req, res) {
   const { txid } = req.body;
-  const valid = bsv.checkPayment(txid);
 
-  return res.json({ valid });
+  try {
+    const valid = await bsv.checkPayment(txid);
+    return res.json({ valid });
+  } catch (err) {
+    console.error("Error verifying payment:", err);
+    return res.status(500).json({
+      error: "Could not verify payment"
+    });
+  }
 }
 
 // GET /log

@@ -1,5 +1,7 @@
 const express = require("express");
 const orchestrator = require("./orchestrator");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const app = express();
 app.use(express.json());
