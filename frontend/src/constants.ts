@@ -1,4 +1,4 @@
-import { Article, UserSettings, WalletState } from './types';
+import { type Article, type UserSettings, type WalletState } from './types';
 
 export const DEFAULT_WALLET_BALANCE = 5.00; // $5.00 USDC start
 export const DEFAULT_ARTICLE_PRICE = 0.02; // $0.02

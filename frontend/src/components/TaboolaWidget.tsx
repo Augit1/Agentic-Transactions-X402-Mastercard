@@ -30,7 +30,7 @@ const TaboolaWidget: React.FC<TaboolaWidgetProps> = ({ variant = 'footer' }) => 
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${variant === 'footer' ? 'md:grid-cols-3' : 'md:grid-cols-3'} gap-x-4 gap-y-6 px-2`}>
         {displayAds.map((ad, i) => (
           <div key={i} className="group cursor-pointer flex flex-col h-full">
-            <div className="overflow-hidden rounded-md mb-2 aspect-[4/3]">
+            <div className="overflow-hidden rounded-md mb-2 aspect-4/3">
               <img 
                 src={`${ad.img}&v=${variant}-${i}`} // Force unique image per instance slightly if random param worked that way, but keeps it consistent
                 alt="Ad" 
