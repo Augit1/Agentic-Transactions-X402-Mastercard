@@ -34,7 +34,7 @@ async function pay(req, res) {
     }
 
     // 2. BSV micropayment via SDK (async)
-    const payment = await bsv.sendPayment("1Dgb9VVaDtUf4Wg7fe6R1H8EASc6sApcds", amount);
+    const payment = await bsv.sendPayment("12294K3WwhespS9V2HAPCJUMTLppgjg3Mu", amount);
     // payment should be { txid }
 
     // 3. X402-style receipt
@@ -65,10 +65,10 @@ async function pay(req, res) {
 // POST /verify
 // NEW
 async function verify(req, res) {
-  const { txid } = req.body;
+  const { txid, requireConfirmed = false } = req.body;
 
   try {
-    const valid = await bsv.checkPayment(txid);
+    const valid = await bsv.checkPayment(txid, !!requireConfirmed);
     return res.json({ valid });
   } catch (err) {
     console.error("Error verifying payment:", err);

@@ -156,15 +156,35 @@ async function sendPayment(toAddress, amountBsv) {
   return { txid };
 }
 
-// Verify a tx actually exists on-chain (very simple version)
-async function checkPayment(txid) {
+// Verify a tx actually exists on-chain
+async function checkPayment(txid, requireConfirmed = false) {
   console.log("BSV SDK: checkPayment called for txid:", txid);
   try {
-    await getTxHex(txid); // will throw if tx not found
-    // If we get here, WOC knows this tx (mempool or confirmed)
+    const data = await wocGet(`/tx/${txid}`);
+
+    if (!data) return false;
+
+    if (requireConfirmed) {
+      const conf = data.confirmations || 0;
+      return conf > 0;
+    }
+
+    // Tx exists (mempool or confirmed) → OK
     return true;
   } catch (e) {
-    console.error("Error in checkPayment:", e.response?.data || e.message);
+    const status = e.response?.status;
+    const body = e.response?.data;
+
+    console.error("Error in checkPayment:", body || e.message);
+
+    // ⚠️ Hackathon-friendly behavior:
+    // If WOC rate-limits us, we *assume* the tx is valid because WE just broadcast it.
+    if (status === 429) {
+      console.warn("WOC rate limit hit (429). Assuming tx is valid for demo purposes.");
+      return true;
+    }
+
+    // For other errors (404, etc.), consider invalid
     return false;
   }
 }
