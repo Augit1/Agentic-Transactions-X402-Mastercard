@@ -1,5 +1,6 @@
 import React from 'react';
 import AgentDashboard from './components/ui/AgentDashboard.tsx';
+import Hero from './Hero.tsx';
 
 /**
  * Componente principal de la aplicación.
@@ -7,8 +8,12 @@ import AgentDashboard from './components/ui/AgentDashboard.tsx';
  */
 const App: React.FC = () => {
   return (
-    // Renderiza el dashboard
-    <AgentDashboard />
+    <>
+      <div className="min-h-screen bg-black"> {/* O  para un tono menos intenso */}
+        <Hero />
+        <AgentDashboard />
+      </div>
+    </>
   );
 };
 
