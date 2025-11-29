@@ -10,12 +10,27 @@ async function pay(req, res) {
   try {
     const {
       amount,
+      currency = "BSV",
+      pay_to,
       x402_payment_request,
       payer_agent_id = "consumer-1",
-      payee_agent_id = "provider-1"
+      payee_agent_id = "provider-1",
     } = req.body;
 
     console.log("Received payment request:", x402_payment_request);
+
+    // 0. Sanity checks on x402 info
+    if (currency !== "BSV") {
+      return res.status(400).json({
+        error: "Unsupported currency",
+        details: `Only BSV is supported by this orchestrator (received: ${currency})`,
+      });
+    }
+
+    const destinationAddress =
+      pay_to || "12294K3WwhespS9V2HAPCJUMTLppgjg3Mu"; // fallback for safety / demo
+
+    console.log("Paying to BSV address:", destinationAddress);
 
     // 1. Mastercard (mock) authorization
     const auth = mastercard.authorize(amount);
@@ -27,24 +42,25 @@ async function pay(req, res) {
         request: x402_payment_request,
         amount,
         timestamp: new Date().toISOString(),
-        details: error
+        details: error,
       });
 
       return res.status(403).json(error);
     }
 
     // 2. BSV micropayment via SDK (async)
-    const payment = await bsv.sendPayment("12294K3WwhespS9V2HAPCJUMTLppgjg3Mu", amount);
+    const payment = await bsv.sendPayment(destinationAddress, amount);
     // payment should be { txid }
 
     // 3. X402-style receipt
     const receipt = {
       txid: payment.txid,
       amount,
+      currency,
       payer_agent_id,
       payee_agent_id,
       signature: "mock-signature",
-      status: "PAID"
+      status: "PAID",
     };
 
     // 4. Traceability
@@ -52,18 +68,19 @@ async function pay(req, res) {
       type: "PAYMENT",
       request: x402_payment_request,
       receipt,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return res.json(receipt);
   } catch (e) {
     console.error("Error in /pay:", e);
-    return res.status(500).json({ error: "Payment failed", details: e.message });
+    return res
+      .status(500)
+      .json({ error: "Payment failed", details: e.message });
   }
 }
 
 // POST /verify
-// NEW
 async function verify(req, res) {
   const { txid, requireConfirmed = false } = req.body;
 
@@ -73,7 +90,7 @@ async function verify(req, res) {
   } catch (err) {
     console.error("Error verifying payment:", err);
     return res.status(500).json({
-      error: "Could not verify payment"
+      error: "Could not verify payment",
     });
   }
 }
@@ -86,5 +103,5 @@ function log(req, res) {
 module.exports = {
   pay,
   verify,
-  log
+  log,
 };
