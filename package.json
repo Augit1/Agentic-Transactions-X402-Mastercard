@@ -6,7 +6,7 @@
     "start:consumer": "node consumer-agent/index.js",
     "start:provider": "node provider-agent/index.js",
     "start:orchestrator": "node payment-orchestrator/index.js",
-    "start:ui": "open ui/index.html",
+    "start:ui": "open http://localhost:4001/index.html",
     "start:all": "npm-run-all -p start:consumer start:provider start:orchestrator start:ui"
   },
   "devDependencies": {

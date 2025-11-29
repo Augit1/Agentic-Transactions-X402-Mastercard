@@ -1,37 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Agentic Payment Demo</title>
+  <meta charset="UTF-8" />
+  <title>Agentic Payments Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    button {
+      padding: 10px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
 </head>
 <body>
   <h1>Agentic Payments Demo</h1>
+  <p>
+    Click the button to have the <strong>consumer agent</strong> request a service
+    from the <strong>provider agent</strong>, negotiate price, pay via
+    <strong>Mastercard + BSV (mock)</strong>, and return the result.
+  </p>
+
   <button onclick="callService()">Call Provider Service</button>
 
+  <h2>Logs</h2>
   <pre id="log"></pre>
 
   <script>
-    function log(msg) {
-      document.getElementById("log").textContent += msg + "\n";
+    function appendLog(label, value) {
+      const log = document.getElementById("log");
+      if (typeof value === "object") {
+        log.textContent += label + ":\n" + JSON.stringify(value, null, 2) + "\n\n";
+      } else {
+        log.textContent += label + ": " + value + "\n";
+      }
     }
 
-	async function callService() {
-		log("Calling service...");
+    async function callService() {
+      document.getElementById("log").textContent = "";
+      appendLog("INFO", "Calling service...");
 
-		const res = await fetch("http://localhost:4001/call-service", {
-			method: "POST"
-		});
+      try {
+        const res = await fetch("/call-service", {
+          method: "POST"
+        });
 
-		const data = await res.json();
+        const data = await res.json();
 
-		log("Quote:");
-		log(JSON.stringify(data.quote, null, 2));
-
-		log("Payment:");
-		log(JSON.stringify(data.payment, null, 2));
-
-		log("Result:");
-		log(JSON.stringify(data.result, null, 2));
-	}
+        if (data.quote) {
+          appendLog("QUOTE", data.quote);
+        }
+        if (data.payment) {
+          appendLog("PAYMENT", data.payment);
+        }
+        if (data.result) {
+          appendLog("RESULT", data.result);
+        }
+        if (data.error) {
+          appendLog("ERROR", data.error);
+        }
+      } catch (e) {
+        appendLog("ERROR", e.message || e.toString());
+      }
+    }
   </script>
 </body>
 </html>
