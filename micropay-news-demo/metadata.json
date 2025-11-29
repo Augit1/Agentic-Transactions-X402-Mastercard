@@ -1,0 +1,5 @@
+{
+  "name": "MicroPay News Demo",
+  "description": "A demonstration of a news platform using simulated BSV blockchain micropayments and browser-based wallet configuration.",
+  "requestFramePermissions": []
+}
