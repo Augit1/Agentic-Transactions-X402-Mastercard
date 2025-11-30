@@ -32,6 +32,44 @@ function verifyReceiptSignature(receipt) {
   return receipt.signature === expected;
 }
 
+// POST /quote - Get a price quote for an article
+router.post("/quote", (req, res) => {
+  try {
+    const { articleId } = req.body;
+    const request_id = `quote-${Date.now()}-${articleId || 'unknown'}`;
+    const priceSats = providerConfig.default_price_sats;
+    
+    const quote = {
+      request_id,
+      articleId,
+      price: priceSats / 1e8, // Convert sats to BSV for display
+      price_sats: priceSats,
+      currency: providerConfig.currency,
+      pay_to: providerConfig.pay_to_address,
+      expiry: Date.now() + 5 * 60 * 1000, // 5 minutes
+      x402_payment_request: {
+        version: "x402-1.0",
+        request_id,
+        amount_sats: priceSats,
+        amount_bsv: priceSats / 1e8,
+        currency: providerConfig.currency,
+        network: providerConfig.network,
+        pay_to: providerConfig.pay_to_address,
+        facilitator: {
+          pay_endpoint: `${ORCH_URL}/pay`,
+          verify_endpoint: `${ORCH_URL}/verify`
+        }
+      }
+    };
+
+    console.log("Quote generated:", quote);
+    return res.json(quote);
+  } catch (e) {
+    console.error("Error in /quote:", e);
+    return res.status(500).json({ error: "Could not generate quote" });
+  }
+});
+
 // POST /execute (X402-style)
 router.post("/execute", async (req, res) => {
   try {

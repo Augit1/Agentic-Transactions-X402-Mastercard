@@ -9,6 +9,15 @@ const bsv = require("./bsv-adapter");
 // In-memory event log for traceability
 const events = [];
 
+// Article hash mapping: ads hash -> premium hash
+// This resolves ad-supported article hashes to their premium counterparts after payment
+const ARTICLE_HASH_MAP = {
+  'x4k9m2p7q3w1': 'a7f3e2b1c9d8', // Article 1: ads -> premium
+  'y5l0n3r8s4v2': 'b8c4d5e6f7a2', // Article 2: ads -> premium
+  'z6m1o4t9u5w3': 'c9d5e6f7g8b3', // Article 3: ads -> premium
+  'a7n2p5v0x6y4': 'd0e6f7g8h9c4', // Article 4: ads -> premium
+};
+
 // Shared secret for signing receipts
 const SIGNING_SECRET = process.env.ORCH_SIGNING_SECRET || "dev-signing-secret";
 
@@ -37,13 +46,24 @@ async function pay(req, res) {
       pay_to,
       x402_payment_request,
       payer_agent_id = "consumer-1",
-      payee_agent_id = "provider-1"
+      payee_agent_id = "provider-1",
+      article_hash // Optional: ads hash to resolve to premium hash
     } = req.body;
 
     console.log("Received payment request:", x402_payment_request);
     console.log("Paying to BSV address:", pay_to);
+    if (article_hash) {
+      console.log("Article hash received:", article_hash);
+    }
 
-    const destinationAddress = pay_to;
+    // Get destination address from pay_to or fall back to x402_payment_request.pay_to
+    const destinationAddress = pay_to || (x402_payment_request && x402_payment_request.pay_to);
+    
+    if (!destinationAddress) {
+      return res.status(400).json({ error: "Missing pay_to address" });
+    }
+    
+    console.log("Using destination address:", destinationAddress);
 
     // 1. Mastercard (mock) authorization
     const auth = mastercard.authorize(amount);
@@ -74,6 +94,12 @@ async function pay(req, res) {
       payee_agent_id,
       status: "PAID"
     };
+
+    // If an article hash was provided, resolve it to the premium hash
+    if (article_hash && ARTICLE_HASH_MAP[article_hash]) {
+      receipt.premium_hash = ARTICLE_HASH_MAP[article_hash];
+      console.log("Resolved premium hash:", receipt.premium_hash);
+    }
 
     receipt.signature = signReceipt(receipt);
 

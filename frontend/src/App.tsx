@@ -69,9 +69,33 @@ const App: React.FC = () => {
 
 
   return (
-    <>
-          <AgentDashboard  />
-    </>
+    <div className="min-h-screen bg-slate-900">
+      {/* Navigation Bar */}
+      <Navigation onScrollTo={handleScroll} />
+      
+      {/* Hero Section */}
+      <section id="hero">
+        <Hero onStartDemoClick={() => handleScroll('dashboard')} />
+      </section>
+      
+      {/* Dashboard Section */}
+      <section id="dashboard">
+        <AgentDashboard />
+      </section>
+      
+      {/* Journalism/Paywall Section */}
+      <section id="journal">
+        <Journalism />
+      </section>
+      
+      {/* Team Section */}
+      <section id="team">
+        <Team />
+      </section>
+      
+      {/* Footer */}
+      <Footer />
+    </div>
   );
 };
 

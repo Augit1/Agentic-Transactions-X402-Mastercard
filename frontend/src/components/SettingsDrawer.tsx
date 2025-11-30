@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserSettings, WalletState } from '../types';
-import { X, CreditCard, ShieldCheck, Activity, Save, RotateCcw, Lock } from 'lucide-react';
 import { type UserSettings, type WalletState } from '../types';
-import { X, CreditCard, ShieldCheck, Activity, Save, RotateCcw } from 'lucide-react';
+import { X, CreditCard, ShieldCheck, Activity, Save, RotateCcw, Lock } from 'lucide-react';
 
 interface SettingsDrawerProps {
   isOpen: boolean;

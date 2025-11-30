@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MOCK_ARTICLES, INITIAL_SETTINGS, INITIAL_WALLET } from './constants';
 import { type Article, type UserSettings, type WalletState } from './types';
 import SettingsDrawer from './components/SettingsDrawer';
@@ -12,7 +12,6 @@ import axios from 'axios';
 const PROVIDER_URL = "http://localhost:4002";
 const ORCH_URL = "http://localhost:4003";
 import JournalismNav from './JournalismNav'; // ⬅️ Importamos el componente de navegación
-import { ArrowLeft, ShieldCheck, AlertCircle, Crown } from 'lucide-react'; // ⬅️ Solo los íconos utilizados en el cuerpo del componente
 
 // Simple hook to persist state to local storage
 function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -31,6 +30,45 @@ function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<Rea
 // Track how an article was accessed
 type AccessMethod = 'paid' | 'ads' | 'subscribed';
 
+// Unique hash codes for each article - simulating server-generated codes
+// Premium (no ads) and Ad-supported versions have completely different hashes
+const ARTICLE_HASHES: Record<string, { premium: string; ads: string }> = {
+  '1': { premium: 'a7f3e2b1c9d8', ads: 'x4k9m2p7q3w1' },
+  '2': { premium: 'b8c4d5e6f7a2', ads: 'y5l0n3r8s4v2' },
+  '3': { premium: 'c9d5e6f7g8b3', ads: 'z6m1o4t9u5w3' },
+  '4': { premium: 'd0e6f7g8h9c4', ads: 'a7n2p5v0x6y4' },
+};
+
+// Reverse lookup: hash -> { articleId, withAds }
+const HASH_TO_ARTICLE: Record<string, { articleId: string; withAds: boolean }> = {};
+Object.entries(ARTICLE_HASHES).forEach(([articleId, hashes]) => {
+  HASH_TO_ARTICLE[hashes.premium] = { articleId, withAds: false };
+  HASH_TO_ARTICLE[hashes.ads] = { articleId, withAds: true };
+});
+
+// Helper to parse hash URL
+function parseArticleHash(hash: string): { articleId: string | null; withAds: boolean } {
+  if (!hash || hash === '#') return { articleId: null, withAds: false };
+  
+  // Remove leading #
+  const cleanHash = hash.replace(/^#/, '');
+  
+  // Look up the hash in our mapping
+  const mapping = HASH_TO_ARTICLE[cleanHash];
+  if (mapping) {
+    return mapping;
+  }
+  
+  return { articleId: null, withAds: false };
+}
+
+// Get hash code for an article
+function getArticleHash(articleId: string, withAds: boolean): string {
+  const hashes = ARTICLE_HASHES[articleId];
+  if (!hashes) return '';
+  return withAds ? hashes.ads : hashes.premium;
+}
+
 export default function Journalism() {
   // --- State ---
   const [settings, setSettings] = useStickyState<UserSettings>(INITIAL_SETTINGS, 'user_settings');
@@ -44,6 +82,51 @@ export default function Journalism() {
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // --- Hash-based URL routing ---
+  
+  // Navigate to article via hash
+  const navigateToArticle = useCallback((articleId: string, withAds: boolean) => {
+    const hashCode = getArticleHash(articleId, withAds);
+    if (hashCode) {
+      window.location.hash = hashCode;
+    }
+  }, []);
+
+  // Navigate back to list
+  const navigateToList = useCallback(() => {
+    window.location.hash = '';
+  }, []);
+
+  // Handle hash changes (back/forward browser navigation)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const { articleId, withAds } = parseArticleHash(window.location.hash);
+      
+      if (articleId) {
+        const article = MOCK_ARTICLES.find(a => a.id === articleId);
+        if (article) {
+          setSelectedArticleId(articleId);
+          setCurrentView('article');
+          
+          // If accessing via ads URL, grant ad-supported access
+          if (withAds && !articleAccess[articleId]) {
+            setArticleAccess(prev => ({ ...prev, [articleId]: 'ads' }));
+          }
+        }
+      } else {
+        setCurrentView('list');
+        setSelectedArticleId(null);
+      }
+    };
+
+    // Handle initial hash on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [articleAccess, setArticleAccess]);
 
   // --- Logic ---
 
@@ -72,7 +155,8 @@ export default function Journalism() {
     
     if (hasAccess) {
       console.log('Already has access, navigating to article');
-      setCurrentView('article');
+      // Navigate using hash URL based on access type
+      navigateToArticle(article.id, articleAccess[article.id] === 'ads');
       return;
     }
 
@@ -118,15 +202,23 @@ export default function Journalism() {
         return;
       }
 
-      // 3. Auto-pay through orchestrator
+      // 3. Auto-pay through orchestrator - send the ads hash to get the premium hash back
+      const adsHash = getArticleHash(article.id, true); // Get the ads hash for this article
       const payRes = await axios.post(`${ORCH_URL}/pay`, {
         x402_payment_request: quote.x402_payment_request,
         amount: quote.price,
+        pay_to: quote.pay_to, // BSV address to pay to
         payer_agent_id: 'consumer-frontend',
         payee_agent_id: 'provider-1',
+        article_hash: adsHash, // Send ads hash to orchestrator
       });
       const payment = payRes.data;
       console.log('Payment receipt:', payment);
+      
+      // The orchestrator returns the premium hash after successful payment
+      if (payment.premium_hash) {
+        console.log('Received premium hash:', payment.premium_hash);
+      }
 
       if (payment.error) {
         console.error('Payment error:', payment.error);
@@ -154,7 +246,13 @@ export default function Journalism() {
         spentToday: prev.spentToday + DISPLAY_PRICE
       }));
       setArticleAccess(prev => ({ ...prev, [article.id]: 'paid' }));
-      setCurrentView('article');
+      
+      // Navigate using the premium hash returned by orchestrator
+      if (payment.premium_hash) {
+        window.location.hash = payment.premium_hash;
+      } else {
+        navigateToArticle(article.id, false);
+      }
 
     } catch (e: any) {
       console.error('Error during auto-pay:', e);
@@ -185,10 +283,10 @@ export default function Journalism() {
     
     // Navigate
     setShowPaywall(false);
-    setCurrentView('article');
+    navigateToArticle(article.id, false);
   };
 
-  const handleManualPay = async (amountPaid: number) => {
+  const handleManualPay = async (_amountPaid: number) => {
     if (!activeArticle) return;
     
     // Always deduct $0.05 for display purposes (regardless of actual transaction amount)
@@ -210,7 +308,7 @@ export default function Journalism() {
     
     // Navigate
     setShowPaywall(false);
-    setCurrentView('article');
+    navigateToArticle(activeArticle.id, false);
   };
 
   const handleSubscribe = async () => {
@@ -220,7 +318,7 @@ export default function Journalism() {
       // Unlock as Subscribed
       setArticleAccess(prev => ({ ...prev, [activeArticle.id]: 'subscribed' }));
       setShowPaywall(false);
-      setCurrentView('article');
+      navigateToArticle(activeArticle.id, false);
   };
 
   const handleViewWithAds = () => {
@@ -228,7 +326,7 @@ export default function Journalism() {
     // Unlock Content as ADS
     setArticleAccess(prev => ({ ...prev, [activeArticle.id]: 'ads' }));
     setShowPaywall(false);
-    setCurrentView('article');
+    navigateToArticle(activeArticle.id, true);
   };
 
   const handleReset = () => {
@@ -247,8 +345,7 @@ export default function Journalism() {
   };
 
   const goHome = () => {
-    setCurrentView('list');
-    setSelectedArticleId(null);
+    navigateToList();
   };
 
   // --- Render ---
@@ -282,11 +379,11 @@ export default function Journalism() {
           </div>
         </div>
       </nav>
-      <JournalismNav 
+      {/* <JournalismNav 
         onGoHome={goHome}
         isSettingsOpen={isSettingsOpen}
         onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
-      />
+      /> */}
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
