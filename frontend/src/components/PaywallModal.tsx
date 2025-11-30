@@ -145,7 +145,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
                 )}
               </div>
               <div className="text-left">
-                <p className="font-bold text-slate-900 dark:text-white">Pay $0.05000</p>
+                <p className="font-bold text-slate-900 dark:text-white">Pay $0.05000 with ClearWeb</p>
                 <p className="text-xs text-slate-500">One-time payment. Instant access. No cookies.</p>
               </div>
             </div>
