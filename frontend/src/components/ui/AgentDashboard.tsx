@@ -223,7 +223,7 @@ const AgentDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className={`lg:col-span-1 ${COLOR_PALETTE.CARD_BACKGROUND} p-6 rounded-2xl shadow-xl`}> 
                         <h2 className="text-xl font-bold mb-4 text-[#FFFFFE] border-b border-gray-700 pb-2"> 
-                            Flujo de Transacción (Modo Humano)
+                            Flujo de Transacción
                         </h2>
                         <div className="space-y-4">
                             {STEPS.map((step, index) => (
