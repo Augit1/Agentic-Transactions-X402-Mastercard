@@ -11,9 +11,9 @@ export const INITIAL_SETTINGS: UserSettings = {
 };
 
 export const INITIAL_WALLET: WalletState = {
-  balance: DEFAULT_WALLET_BALANCE,
+  balance: 0,
   currency: 'USDC',
-  isFunded: true,
+  isFunded: false,
 };
 
 export const MOCK_ARTICLES: Article[] = [

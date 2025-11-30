@@ -5,7 +5,12 @@ import SettingsDrawer from './components/SettingsDrawer';
 import ArticleCard from './components/ArticleCard';
 import PaywallModal from './components/PaywallModal';
 import TaboolaWidget from './components/TaboolaWidget';
+import AnnoyingVideoAds from './components/AnnoyingVideoAds';
 import { Settings, LayoutGrid, ArrowLeft, ShieldCheck, AlertCircle, Crown } from 'lucide-react';
+import axios from 'axios';
+
+const PROVIDER_URL = "http://localhost:4002";
+const ORCH_URL = "http://localhost:4003";
 
 // Simple hook to persist state to local storage
 function useStickyState<T>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -36,6 +41,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'list' | 'article'>('list');
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // --- Logic ---
 
@@ -51,27 +57,108 @@ export default function App() {
     }
   }, [settings.lastResetDate, setSettings]);
 
+  // If wallet is not funded, ensure settings drawer is open so they can fund it
+  // But maybe only if they try to do something? 
+  // For now, let's just let them explore, but they can't pay.
+
   const activeArticle = MOCK_ARTICLES.find(a => a.id === selectedArticleId);
 
-  const handleArticleClick = (article: Article) => {
+  const handleArticleClick = async (article: Article) => {
+    console.log('Article clicked:', article.id);
     setSelectedArticleId(article.id);
     const hasAccess = !!articleAccess[article.id];
     
     if (hasAccess) {
+      console.log('Already has access, navigating to article');
       setCurrentView('article');
-    } else {
-      // Check for "Magic" auto-pay based on user settings
-      const canAfford = wallet.balance >= article.price;
-      const withinDaily = (settings.spentToday + article.price) <= settings.maxPaymentPerDay;
-      const withinArticleLimit = article.price <= settings.maxPaymentPerArticle;
+      return;
+    }
 
-      if (canAfford && withinDaily && withinArticleLimit) {
-        // Auto-pay logic
-        executePayment(article);
-      } else {
-        // Trigger Paywall Modal if limit exceeded or logic requires confirmation
+    // If wallet not funded, show paywall
+    if (!wallet.isFunded) {
+      console.log('Wallet not funded, showing paywall');
+      setShowPaywall(true);
+      return;
+    }
+
+    // Try to get quote from provider and auto-pay if within limits
+    setIsProcessingPayment(true);
+    try {
+      // 1. Get quote from provider
+      console.log('Fetching quote from provider...');
+      const quoteRes = await axios.post(`${PROVIDER_URL}/quote`, {
+        articleId: article.id,
+      });
+      const quote = quoteRes.data;
+      console.log('Quote received:', quote);
+
+      // 2. Check if within user's settings limits
+      const canAfford = wallet.balance >= quote.price;
+      const withinDaily = (settings.spentToday + quote.price) <= settings.maxPaymentPerDay;
+      const withinArticleLimit = quote.price <= settings.maxPaymentPerArticle;
+      
+      console.log('Limit checks:', { 
+        canAfford, 
+        withinDaily, 
+        withinArticleLimit,
+        walletBalance: wallet.balance,
+        quotePrice: quote.price,
+        maxPaymentPerArticle: settings.maxPaymentPerArticle,
+        maxPaymentPerDay: settings.maxPaymentPerDay,
+        spentToday: settings.spentToday
+      });
+
+      if (!canAfford || !withinDaily || !withinArticleLimit) {
+        // Show paywall if any limit exceeded
+        console.log('Limits exceeded, showing paywall');
+        setIsProcessingPayment(false);
         setShowPaywall(true);
+        return;
       }
+
+      // 3. Auto-pay through orchestrator
+      const payRes = await axios.post(`${ORCH_URL}/pay`, {
+        x402_payment_request: quote.x402_payment_request,
+        amount: quote.price,
+        payer_agent_id: 'consumer-frontend',
+        payee_agent_id: 'provider-1',
+      });
+      const payment = payRes.data;
+      console.log('Payment receipt:', payment);
+
+      if (payment.error) {
+        console.error('Payment error:', payment.error);
+        setIsProcessingPayment(false);
+        setShowPaywall(true);
+        return;
+      }
+
+      // 4. Execute with provider
+      const execRes = await axios.post(`${PROVIDER_URL}/execute`, {
+        request_id: quote.request_id,
+        payment_receipt: payment,
+      });
+      const result = execRes.data;
+      console.log('Service result:', result);
+
+      // 5. Update local state - always deduct $0.05 for display purposes
+      const DISPLAY_PRICE = 0.05;
+      setWallet(prev => ({
+        ...prev,
+        balance: prev.balance - DISPLAY_PRICE
+      }));
+      setSettings(prev => ({
+        ...prev,
+        spentToday: prev.spentToday + DISPLAY_PRICE
+      }));
+      setArticleAccess(prev => ({ ...prev, [article.id]: 'paid' }));
+      setCurrentView('article');
+
+    } catch (e: any) {
+      console.error('Error during auto-pay:', e);
+      setShowPaywall(true);
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -99,9 +186,29 @@ export default function App() {
     setCurrentView('article');
   };
 
-  const handleManualPay = async () => {
+  const handleManualPay = async (amountPaid: number) => {
     if (!activeArticle) return;
-    await executePayment(activeArticle);
+    
+    // Always deduct $0.05 for display purposes (regardless of actual transaction amount)
+    const DISPLAY_PRICE = 0.05;
+    
+    setWallet(prev => ({
+        ...prev,
+        balance: prev.balance - DISPLAY_PRICE
+    }));
+
+    // Update Spend Tracker
+    setSettings(prev => ({
+        ...prev,
+        spentToday: prev.spentToday + DISPLAY_PRICE
+    }));
+
+    // Unlock Content as PAID
+    setArticleAccess(prev => ({ ...prev, [activeArticle.id]: 'paid' }));
+    
+    // Navigate
+    setShowPaywall(false);
+    setCurrentView('article');
   };
 
   const handleSubscribe = async () => {
@@ -123,10 +230,18 @@ export default function App() {
   };
 
   const handleReset = () => {
+    // Resets to initial state (Unfunded)
     setWallet(INITIAL_WALLET);
     setArticleAccess({});
-    // We intentionally do not reset settings (max payment preferences) as the user 
-    // likely wants to keep their config, just reset the content/money simulation.
+    setSettings(INITIAL_SETTINGS);
+  };
+
+  const handleFundWallet = () => {
+      setWallet({
+          balance: 5.00,
+          currency: 'USDC',
+          isFunded: true
+      });
   };
 
   const goHome = () => {
@@ -154,9 +269,12 @@ export default function App() {
             <div className="flex items-center space-x-4">
               <button 
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className={`p-2 rounded-lg transition-colors ${isSettingsOpen ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                className={`p-2 rounded-lg transition-colors relative ${isSettingsOpen ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
               >
                 <Settings className="w-6 h-6" />
+                {!wallet.isFunded && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+                )}
               </button>
             </div>
           </div>
@@ -174,6 +292,7 @@ export default function App() {
             wallet={wallet}
             onSaveSettings={setSettings}
             onReset={handleReset}
+            onFundWallet={handleFundWallet}
         />
 
         {currentView === 'list' && (
@@ -186,6 +305,16 @@ export default function App() {
                     Access premium content instantly. Pay per article or view with ads.
                     <br className="hidden md:block"/> No subscriptions. Your choice.
                 </p>
+                {!wallet.isFunded && (
+                    <div className="mt-6">
+                        <button 
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-full shadow-lg hover:shadow-xl transition-all animate-bounce"
+                        >
+                            Setup Wallet to Start
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -198,11 +327,25 @@ export default function App() {
                 />
               ))}
             </div>
+
+            {/* Processing Payment Overlay */}
+            {isProcessingPayment && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl flex flex-col items-center gap-4">
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-700 dark:text-slate-200 font-medium">Processing payment...</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {currentView === 'article' && activeArticle && (
-          <article className="max-w-3xl mx-auto animate-in slide-in-from-bottom-4 duration-500 bg-white dark:bg-slate-900 p-8 md:p-12 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <article className="max-w-3xl mx-auto animate-in slide-in-from-bottom-4 duration-500 bg-white dark:bg-slate-900 p-8 md:p-12 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative">
+            
+            {/* ANNOYING VIDEO ADS if accessed via 'ads' */}
+            {articleAccess[activeArticle.id] === 'ads' && <AnnoyingVideoAds />}
+
             <button 
                 onClick={goHome} 
                 className="group flex items-center text-sm font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 mb-8 transition-colors"

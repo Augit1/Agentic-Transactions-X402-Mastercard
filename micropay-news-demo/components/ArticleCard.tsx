@@ -27,7 +27,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, isUnlocked, onClick 
               : 'bg-black/60 text-white'
           }`}>
             {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-            {isUnlocked ? 'Unlocked' : `$${article.price.toFixed(2)}`}
+            {isUnlocked ? 'Unlocked' : 'Locked'}
           </span>
         </div>
         <div className="absolute bottom-3 left-3">

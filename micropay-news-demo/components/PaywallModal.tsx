@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Article, UserSettings, WalletState } from '../types';
 import { Zap, AlertTriangle, CheckCircle2, LayoutTemplate, Crown } from 'lucide-react';
+import axios from 'axios';
+
+const PROVIDER_URL = "http://localhost:4002";
+const ORCH_URL = "http://localhost:4003";
 
 interface PaywallModalProps {
   article: Article;
   settings: UserSettings;
   wallet: WalletState;
-  onPay: () => Promise<void>;
+  onPay: (amountPaid: number) => Promise<void>;
   onSubscribe: () => Promise<void>;
   onAcceptAds: () => void;
   onCancel: () => void;
@@ -25,8 +29,6 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const canAfford = wallet.balance >= article.price;
-  const isWithinDailyLimit = (settings.spentToday + article.price) <= settings.maxPaymentPerDay;
-  const isWithinArticleLimit = article.price <= settings.maxPaymentPerArticle;
   
   const handlePayClick = async () => {
     setError(null);
@@ -35,26 +37,61 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
     if (!canAfford) {
       setTimeout(() => {
         setIsProcessing(false);
-        setError("Insufficient funds in BSV wallet.");
+        setError("Insufficient funds in wallet.");
       }, 800);
       return;
     }
-
-    if (!isWithinDailyLimit) {
-        setTimeout(() => {
-            setIsProcessing(false);
-            setError(`Daily spend limit ($${settings.maxPaymentPerDay}) reached.`);
-        }, 800);
-        return;
-    }
     
     try {
-      await onPay();
-    } catch (e) {
-      setError("Transaction failed.");
+      // 1. Get a payment quote from the PROVIDER
+      const quoteRes = await axios.post(`${PROVIDER_URL}/quote`, {
+        articleId: article.id,
+      });
+
+      const quote = quoteRes.data;
+      console.log('Quote received:', quote);
+
+      // 2. Pay through Orchestrator (no max/daily checks - popup is the override)
+      const payRes = await axios.post(`${ORCH_URL}/pay`, {
+        x402_payment_request: quote.x402_payment_request,
+        amount: quote.price,
+        payer_agent_id: 'consumer-frontend',
+        payee_agent_id: 'provider-1',
+      });
+
+      const payment = payRes.data;
+      console.log('Payment receipt received:', payment);
+      if (payment.error) {
+        setError(payment.error);
+        setIsProcessing(false);
+        return;
+      }
+
+      // 4. Call Provider execute endpoint with payment receipt
+      const execRes = await axios.post(`${PROVIDER_URL}/execute`, {
+        request_id: quote.request_id,
+        payment_receipt: payment,
+      });
+
+      const result = execRes.data;
+
+      if (result.error) {
+        setError(result.error);
+        setIsProcessing(false);
+        return;
+      }
+
+      console.log('Payment complete:', { quote, payment, result });
+
+      // Call the parent's onPay to update UI state with amount paid
+      await onPay(quote.price);
+    } catch (e: any) {
+      console.error('Payment error:', e);
+      setError(e.response?.data?.error || e.message || "Transaction failed.");
+    } finally {
       setIsProcessing(false);
     }
-  };
+};
 
   const handleSubscribeClick = async () => {
       setError(null);
@@ -108,9 +145,9 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
                 <p className="text-xs text-slate-500">One-time payment. Instant access.</p>
               </div>
             </div>
-            {isWithinArticleLimit && isWithinDailyLimit && canAfford && !isProcessing && (
+            {canAfford && !isProcessing && (
                 <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Auto
+                    <CheckCircle2 className="w-3 h-3" /> Ready
                 </span>
             )}
           </button>

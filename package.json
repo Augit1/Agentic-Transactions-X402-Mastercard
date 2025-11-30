@@ -18,7 +18,9 @@
   },
   "dependencies": {
     "@bsv/sdk": "^1.9.11",
+    "@bsv/wallet-toolbox": "^1.7.13",
     "axios": "^1.13.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0"
   }
