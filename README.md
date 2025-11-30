@@ -1,5 +1,5 @@
 # ClearWeb: Agentic Micropayments (X402 + Mastercard + BSV)
-### Spend Your Money, not your Attention
+### Spend Your Money, Not Your Attention
 > **Merge Madrid Hackathon 2025 Submission**  
 
 
