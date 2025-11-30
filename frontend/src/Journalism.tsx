@@ -265,7 +265,7 @@ export default function Journalism() {
     }
   };
 
-  const handleManualPay = async (_amountPaid: number) => {
+  const handleManualPay = async (_amountPaid: number, premiumHash?: string) => {
     if (!activeArticle) return;
     
     // Always deduct $0.05 for display purposes (regardless of actual transaction amount)
@@ -287,7 +287,12 @@ export default function Journalism() {
     
     // Navigate
     setShowPaywall(false);
-    navigateToArticle(activeArticle.id, false);
+    
+    if (premiumHash) {
+        window.location.hash = premiumHash;
+    } else {
+        navigateToArticle(activeArticle.id, false);
+    }
   };
 
   const handleSubscribe = async () => {
@@ -582,6 +587,7 @@ export default function Journalism() {
             article={activeArticle}
             settings={settings}
             wallet={wallet}
+            adsHash={getArticleHash(activeArticle.id, true)}
             onPay={handleManualPay}
             onSubscribe={handleSubscribe}
             onAcceptAds={handleViewWithAds}

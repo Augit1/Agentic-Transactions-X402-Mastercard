@@ -10,7 +10,8 @@ interface PaywallModalProps {
   article: Article;
   settings: UserSettings;
   wallet: WalletState;
-  onPay: (amountPaid: number) => Promise<void>;
+  adsHash: string;
+  onPay: (amountPaid: number, premiumHash?: string) => Promise<void>;
   onSubscribe: () => Promise<void>;
   onAcceptAds: () => void;
   onCancel: () => void;
@@ -20,6 +21,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
   article,
   settings,
   wallet,
+  adsHash,
   onPay,
   onSubscribe,
   onAcceptAds,
@@ -55,8 +57,10 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
       const payRes = await axios.post(`${ORCH_URL}/pay`, {
         x402_payment_request: quote.x402_payment_request,
         amount: quote.price,
+        pay_to: quote.pay_to,
         payer_agent_id: 'consumer-frontend',
         payee_agent_id: 'provider-1',
+        article_hash: adsHash,
       });
 
       const payment = payRes.data;
@@ -84,7 +88,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
       console.log('Payment complete:', { quote, payment, result });
 
       // Call the parent's onPay to update UI state with amount paid
-      await onPay(quote.price);
+      await onPay(quote.price, payment.premium_hash);
     } catch (e: any) {
       console.error('Payment error:', e);
       setError(e.response?.data?.error || e.message || "Transaction failed.");
