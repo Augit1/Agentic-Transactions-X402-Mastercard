@@ -40,7 +40,7 @@ export const STEPS: string[] = [
   'El Agente Consumidor crea la petición de servicio.',
   'El Agente Proveedor envía la cotización (quote) y X402 Request.',
   'Orquestador verifica y autoriza el pago con Mastercard (mock).',
-  'Orquestador liquida la transacción en BSV (simulado).',
+  'Orquestador liquida la transacción en BSV.',
   'El Proveedor entrega el servicio digital al Consumidor.',
 ];
 

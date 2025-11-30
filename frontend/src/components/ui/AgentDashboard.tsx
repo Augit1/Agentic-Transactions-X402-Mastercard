@@ -89,37 +89,36 @@ const AgentDashboard: React.FC = () => {
             setCurrentStepIndex(0);
             addLog(LogType.CONSUMER, `➡️ ${LogType.PROVIDER}: Solicitud de servicio enviada.`);
 
-	  // --- PASO 2: El Proveedor Envía la Quote ---
+	    // --- PASO 2: El Proveedor Envía la Quote ---
             setCurrentStepIndex(1);
             addLog(LogType.PROVIDER, `⬅️ ${LogType.CONSUMER}: El precio es ${bsvAmount} BSV. (ID: ${x402RequestId})`);
-	  addLog(LogType.PROVIDER, `Adjunto: X402 Payment Request. Listo para el pago.`);
-            await delay(2000);
+	        addLog(LogType.PROVIDER, `Adjunto: X402 Payment Request. Listo para el pago.`);
+            await delay(100);
 
-	  // --- PASO 3: Orquestador y Mastercard (Mock) ---
+	    // --- PASO 3: Orquestador y Mastercard (Mock) ---
             setCurrentStepIndex(2);
             addLog(LogType.CONSUMER, `➡️ ${LogType.ORCHESTRATOR}: Paga la X402_request_id=${x402RequestId}`);
-            await delay(2000);
+            await delay(200);
             addLog(LogType.ORCHESTRATOR, `➡️ ${LogType.MASTERCARD}: Solicitar autorización para ${bsvAmount} BSV`);
-            await delay(2000);
+            await delay(100);
             addLog(LogType.MASTERCARD, `⬅️ ${LogType.ORCHESTRATOR}: Autorizado ${LogType.SUCCESS}`);
-            await delay(2000);
+            await delay(200);
             addLog(LogType.ORCHESTRATOR, `Autorización de pago con ${LogType.SUCCESS}. Pasando a liquidación BSV ...`);
-            await delay(2000);
+            await delay(100);
 
             // --- PASO 4: Pago en BSV (Datos REALES de la respuesta) ---
             setCurrentStepIndex(3);
             addLog(LogType.ORCHESTRATOR, `➡️ ${LogType.BSV_ADAPTER}: Enviando micropago de ${bsvAmount} BSV...`);
-            await delay(2000);
+            await delay(200);
             addLog(LogType.BSV_ADAPTER, `⬅️ ${LogType.ORCHESTRATOR}: Transacción enviada. txid=${txid}`);
             addLog(LogType.ORCHESTRATOR, `Detalles de pago recibidos (JSON): \n${JSON.stringify(data.payment, null, 2)}`); // Usamos ORCHESTRATOR
-            await delay(1000);
+            await delay(200);
             addLog(LogType.ORCHESTRATOR, `Pago liquidado. Generando X402 recibo ... `);
             addLog(LogType.ORCHESTRATOR, `⬅️ ${LogType.CONSUMER}: Pago confirmado. Aquí tienes el recibo.`);
 
             // --- PASO 5: El Proveedor Entrega el Servicio ---
             setCurrentStepIndex(4);
             addLog(LogType.CONSUMER, `➡️ ${LogType.PROVIDER}: Aquí tienes el recibo (${txid}), Ejecutando Servicio...`);
-            await delay(2000);
             const serviceResult: string = data.result.message;
             addLog(LogType.PROVIDER, `Servicio validado y ejecutado. Resultado: "${serviceResult}"`);
             addLog(LogType.PROVIDER, `Detalles del Resultado (JSON): \n${JSON.stringify(data.result, null, 2)}`); // Usamos PROVIDER
@@ -132,7 +131,7 @@ const AgentDashboard: React.FC = () => {
             }
 
             // --- Finalización ---
-            await delay(500);
+            await delay(200);
             setFinalResult(`${LogType.SUCCESS} Resultado Final: ${serviceResult}`);
             setCurrentStepIndex(5); // Marcar todos los pasos como completados
 

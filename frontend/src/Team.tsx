@@ -128,10 +128,10 @@ const teamMembers: TeamMember[] = [
     id: 2,
     name: 'Alex Michael Espinosa Males',
     role: 'Fullstack Developer',
-    imageUrl: '/images/michael.jpeg',
+    imageUrl: '/images/michael.jpg',
     description: 'Ingeniero de Software',
     linkedinUrl: 'https://www.linkedin.com/in/michael-espinosa/',
-    githubUrl: 'https://github.com/',
+    githubUrl: 'https://github.com/blex-ing',
   },
   {
     id: 3,
