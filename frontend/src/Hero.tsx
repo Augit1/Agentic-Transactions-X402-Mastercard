@@ -48,22 +48,41 @@ const Hero: React.FC<HeroProps> = ({ onStartDemoClick }) => {
               Start Demo
           </button>
           
-          <button className="px-8 py-4 bg-transparent border-2 border-white/30 hover:border-white/50 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10">
+          <button className="px-8 py-4 bg-transparent border-2 border-white/30 hover:border-white/50 text-white font-semibold rounded-xl transition-all duration-200 hover:bg-white/10"
+            onClick={() => { 
+                window.open("https://www.mmerge.io/es/hackathon-2025", "_blank");
+              }}
+          >
               About
           </button>
         </div>
         
         {/* Tecnologías */}
         <div className="mt-16 flex flex-wrap justify-center gap-4">
-          <span className="px-4 py-2 bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-full text-blue-300 font-medium">
+          <button 
+            className="px-4 py-2 bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-full text-blue-300 font-medium hover:bg-blue-500/30 transition-colors"
+            onClick={() => { 
+              window.open("https://www.x402.org/", "_blank");
+            }}
+          >
             X402 Protocol
-          </span>
-          <span className="px-4 py-2 bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full text-purple-300 font-medium">
-            Mastercard Integration
-          </span>
-          <span className="px-4 py-2 bg-emerald-500/20 backdrop-blur-sm border border-emerald-400/30 rounded-full text-emerald-300 font-medium">
+          </button>
+          <button 
+            className="px-4 py-2 bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full text-purple-300 font-medium hover:bg-purple-500/30 transition-colors"
+            onClick={() => { 
+              window.open("https://www.mastercard.com/us/en/business/artificial-intelligence/mastercard-agent-pay.html", "_blank");
+            }}
+          >
+            Mastercard Integration (Mock)
+          </button>
+          <button 
+            className="px-4 py-2 bg-emerald-500/20 backdrop-blur-sm border border-emerald-400/30 rounded-full text-emerald-300 font-medium hover:bg-emerald-500/30 transition-colors"
+            onClick={() => { 
+              window.open("https://whatsonchain.com/", "_blank");
+            }}
+          >
             BSV Blockchain
-          </span>
+          </button>
         </div>
       </div>
     </div>
