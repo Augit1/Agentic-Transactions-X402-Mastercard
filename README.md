@@ -160,9 +160,9 @@ npm run start:all
 
 ## 👥 The Team
 
-*   **Augustin Bethery de La Brosse** - Fullstack Developer
-*   **Alex Michael Espinosa Males** - Fullstack Developer
-*   **Fabricio López Reyes** - Fullstack Developer & Business
+*   **[Augustin Bethery de La Brosse](https://github.com/Augit1)** - Fullstack Developer
+*   **[Alex Michael Espinosa Males](https://github.com/blex-ing)** - Fullstack Developer
+*   **[Fabricio López Reyes](https://github.com/sherlockpe)** - Fullstack Developer & Business
 *   **[Sam Cowan](https://github.com/samc5)** - Fullstack Developer & Data Scientist
 
 ---
