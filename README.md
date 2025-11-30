@@ -168,6 +168,6 @@ This prototype shows:
 
 📜 License
 
-MIT
+MIT.
 
 ⸻
