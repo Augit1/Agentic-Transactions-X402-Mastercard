@@ -22,7 +22,7 @@ try {
 }
 
 // 2) Network / WOC config
-const BSV_NETWORK = "main";
+const BSV_NETWORK = process.env.BSV_NETWORK || "main"; 
 const WOC_API_KEY = process.env.WOC_API_KEY || null;
 const WOC_BASE = `https://api.whatsonchain.com/v1/bsv/${BSV_NETWORK}`;
 
@@ -48,17 +48,15 @@ async function getUtxos(address) {
   const all = data.result || [];
 
   // Only keep UTXOs that are not currently being spent by some mempool tx
-  const spendable = all.filter(u => !u.isSpentInMempoolTx);
+  const spendable = all.filter((u) => !u.isSpentInMempoolTx);
 
   return spendable;
 }
 
 // ------------ helper: fetch raw tx hex -----------------
 async function getTxHex(txid) {
-  // GET /tx/<txid>/hex
   const data = await wocGet(`/tx/${txid}/hex`);
 
-  // New WOC returns plain string; some libs expect { hex: "..." }
   if (typeof data === "string") return data;
   if (data && data.hex) return data.hex;
 
@@ -71,7 +69,9 @@ async function getTxHex(txid) {
 async function sendPayment(toAddress, amountBsv) {
   const privKey = PrivateKey.fromWif(WIF);
   const fromAddress = privKey.toAddress().toString();
-  console.log(`BSV SDK: preparing payment of ${amountBsv} BSV from ${fromAddress} to ${toAddress}`);
+  console.log(
+    `BSV SDK: preparing payment of ${amountBsv} BSV from ${fromAddress} to ${toAddress}`
+  );
 
   const satsToSend = bsvToSats(amountBsv);
   const FEE_BUFFER_SATS = 1000;
@@ -87,8 +87,7 @@ async function sendPayment(toAddress, amountBsv) {
   const sorted = utxos.sort((a, b) => b.value - a.value);
   const needed = satsToSend + FEE_BUFFER_SATS;
 
-  // WOC returns "value" in satoshis, "tx_hash" as txid, "tx_pos" as vout index
-  const utxo = sorted.find(u => u.value >= needed);
+  const utxo = sorted.find((u) => u.value >= needed);
 
   if (!utxo) {
     throw new Error(
@@ -123,7 +122,6 @@ async function sendPayment(toAddress, amountBsv) {
   const version = 1;
   const tx = new Transaction(version, [input], outputs);
 
-  // 4) Fee calculation & signing
   await tx.fee();
   await tx.sign();
 
@@ -157,19 +155,62 @@ async function sendPayment(toAddress, amountBsv) {
 }
 
 // Verify a tx actually exists on-chain
-async function checkPayment(txid, requireConfirmed = false) {
+async function checkPayment(txid, options = {}) {
+  const {
+    requireConfirmed = false,
+    expectedAddress,
+    minSatoshis
+  } = options;
+
   console.log("BSV SDK: checkPayment called for txid:", txid);
+
   try {
     const data = await wocGet(`/tx/${txid}`);
 
     if (!data) return false;
 
+    // 1) Confirmations check (if required)
     if (requireConfirmed) {
       const conf = data.confirmations || 0;
-      return conf > 0;
+      if (conf <= 0) {
+        console.log("checkPayment: tx not confirmed yet");
+        return false;
+      }
     }
 
-    // Tx exists (mempool or confirmed) → OK
+    // 2) Address + amount check (if expectedAddress or minSatoshis provided)
+    if (expectedAddress || minSatoshis) {
+      const vout = data.vout || [];
+      let match = false;
+
+      for (const out of vout) {
+        const valueSats = Math.round(out.value * 1e8); // WOC value is in BSV
+        const addresses = (out.scriptPubKey && out.scriptPubKey.addresses) || [];
+
+        const addressOk = expectedAddress
+          ? addresses.includes(expectedAddress)
+          : true;
+
+        const amountOk = typeof minSatoshis === "number"
+          ? valueSats >= minSatoshis
+          : true;
+
+        if (addressOk && amountOk) {
+          match = true;
+          break;
+        }
+      }
+
+      if (!match) {
+        console.log(
+          "checkPayment: no output paying expected address/amount",
+          { expectedAddress, minSatoshis }
+        );
+        return false;
+      }
+    }
+
+    // If we reach here: tx exists, and (if requested) confirmed and matches outputs
     return true;
   } catch (e) {
     const status = e.response?.status;
@@ -177,13 +218,12 @@ async function checkPayment(txid, requireConfirmed = false) {
 
     console.error("Error in checkPayment:", body || e.message);
 
-    // If WOC rate-limits us, we *assume* the tx is valid because WE just broadcast it.
+    // WOC rate-limit → assume valid for demo purposes
     if (status === 429) {
       console.warn("WOC rate limit hit (429). Assuming tx is valid for demo purposes.");
       return true;
     }
 
-    // For other errors (404, etc.), consider invalid
     return false;
   }
 }

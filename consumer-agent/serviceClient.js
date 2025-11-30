@@ -1,130 +1,121 @@
 // consumer-agent/serviceClient.js
 const axios = require("axios");
+const path = require("path");
+
+// Load consumer policy/config
+const consumerConfig = require(path.join(__dirname, "config/consumer.json"));
 
 const PROVIDER_URL = "http://localhost:4002";
 const ORCH_URL = "http://localhost:4003";
 
+// IDs from env or JSON
+const CONSUMER_ID = process.env.CONSUMER_ID || consumerConfig.id;
+const PROVIDER_ID = process.env.PROVIDER_ID || "provider-1";
+
 async function callService() {
   console.log("\nINFO: Calling service...");
 
-  let request_id = Date.now().toString();
-  let paymentRequirements = null;
-  let payment_receipt = null;
-  let finalResult = null;
-
-  // ---------- 1) First call to the protected resource WITHOUT payment ----------
+  // 1) First attempt: call /execute without payment → expect 402
+  let quoteRes;
   try {
-    const res = await axios.post(`${PROVIDER_URL}/execute`, {
-      request_id,
-      // no payment_receipt on purpose → we expect 402
-    });
-
-    // If we got 200 here, service is free (no payment required)
-    console.log("Service returned 200 without payment (free resource):");
-    console.log(JSON.stringify(res.data, null, 2));
-
-    finalResult = res.data;
-
-    return {
-      quote: null,
-      payment: null,
-      result: finalResult,
-    };
-  } catch (err) {
-    if (err.response && err.response.status === 402) {
-      const body = err.response.data || {};
-      paymentRequirements =
-        body.paymentRequirements || body.payment_requirements || null;
-
-      console.log("QUOTE (PaymentRequirements from 402):");
-      console.log(JSON.stringify(paymentRequirements, null, 2));
+    quoteRes = await axios.post(`${PROVIDER_URL}/execute`, {});
+  } catch (e) {
+    if (e.response && e.response.status === 402) {
+      quoteRes = e.response;
     } else {
-      console.error("Unexpected error on first /execute call:", err.message);
-      throw err;
+      console.error("Error calling provider /execute:", e.message || e);
+      throw e;
     }
   }
 
-  if (!paymentRequirements) {
-    throw new Error("Missing paymentRequirements in 402 response");
+  const paymentRequirements = quoteRes.data;
+  console.log("\nQUOTE (PaymentRequirements from 402):");
+  console.log(JSON.stringify(paymentRequirements, null, 2));
+
+  const {
+    request_id,
+    amount_sats,
+    amount_bsv,
+    currency,
+    network,
+    pay_to
+  } = paymentRequirements;
+
+  const priceSats = amount_sats;
+
+  // 2) Apply consumer policy from consumer.json
+  if (!consumerConfig.allowed_currencies.includes(currency)) {
+    throw new Error(`Currency ${currency} is not allowed by consumer policy`);
   }
 
-  // Ensure we keep same request_id as provider
-  request_id = paymentRequirements.request_id || request_id;
+  if (!consumerConfig.allowed_networks.includes(network)) {
+    throw new Error(`Network ${network} is not allowed by consumer policy`);
+  }
 
-  // ---------- 2) Pay via orchestrator using the price from PaymentRequirements ----------
-  const priceSats = paymentRequirements.amount_sats;
-  const amountBsv =
-    typeof paymentRequirements.amount_bsv === "number"
-      ? paymentRequirements.amount_bsv
-      : priceSats / 1e8;
+  if (priceSats > consumerConfig.max_price_sats) {
+    throw new Error(
+      `Price ${priceSats} sats exceeds consumer max limit of ${consumerConfig.max_price_sats} sats`
+    );
+  }
 
+  if (!consumerConfig.auto_pay) {
+    throw new Error(
+      "auto_pay is disabled in consumer config – manual approval flow not implemented in this MVP"
+    );
+  }
+
+  // 3) Pay using orchestrator
   const x402_payment_request = `x402://provider/${request_id}`;
-
   console.log("\nINFO: Paying through orchestrator...");
   console.log(
-    `Paying ${amountBsv} BSV (${priceSats} sats) for request_id=${request_id}`
+    `Paying ${amount_bsv} BSV (${priceSats} sats) for request_id=${request_id}`
   );
 
   const payResponse = await axios.post(`${ORCH_URL}/pay`, {
     x402_payment_request,
-    amount: amountBsv,
-	currency: paymentRequirements.currency || "BSV",
-	pay_to: paymentRequirements.pay_to,
-    payer_agent_id: "consumer-1",
-    payee_agent_id: "provider-1",
+    amount: amount_bsv,
+    currency,
+    pay_to,
+    payer_agent_id: CONSUMER_ID,
+    payee_agent_id: PROVIDER_ID
   });
 
-  payment_receipt = payResponse.data;
+  const payment_receipt = payResponse.data;
 
   console.log("\nPAYMENT RECEIPT:");
   console.log(JSON.stringify(payment_receipt, null, 2));
 
-  // ---------- 3) Build X-PAYMENT header ----------
-  const paymentHeaderPayload = {
-    txid: payment_receipt.txid,
-    amount: payment_receipt.amount,
-    currency: "BSV",
-    network: paymentRequirements.network || "bsv-mainnet",
-    request_id,
-    to: paymentRequirements.pay_to,
-    from: payment_receipt.payer_agent_id || "consumer-1",
-    signature: payment_receipt.signature || "mock-signature",
-    status: payment_receipt.status || "PAID",
-  };
-
-  const xPaymentValue = Buffer.from(
-    JSON.stringify(paymentHeaderPayload),
-    "utf8"
-  ).toString("base64");
-
-  // ---------- 4) Retry /execute with payment_receipt + X-PAYMENT ----------
+  // 4) Retry /execute with X-PAYMENT + receipt in body
   console.log("\nINFO: Retrying /execute with X-PAYMENT header...");
 
-  const execResponse = await axios.post(
+  const paymentHeaderValue = JSON.stringify(payment_receipt);
+
+  const execRes = await axios.post(
     `${PROVIDER_URL}/execute`,
     {
       request_id,
-      payment_receipt,
+      payment_receipt
     },
     {
       headers: {
-        "X-PAYMENT": xPaymentValue,
-      },
+        "X-PAYMENT": paymentHeaderValue
+      }
     }
   );
 
-  finalResult = execResponse.data;
+  const result = execRes.data;
 
   console.log("\nRESULT (unlocked service):");
-  console.log(JSON.stringify(finalResult, null, 2));
+  console.log(JSON.stringify(result, null, 2));
 
+  // This is what your UI returns to the browser
   return {
     quote: paymentRequirements,
     payment: payment_receipt,
-    result: finalResult,
+    result
   };
 }
 
 module.exports = {
-  callService,
+  callService
 };
