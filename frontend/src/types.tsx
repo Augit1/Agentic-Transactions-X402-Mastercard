@@ -14,7 +14,7 @@ export type LogSender = (typeof LogType)[keyof typeof LogType];
 
 // Estructura de un item del log
 export interface LogItem {
-  sender: LogSender | '✅ Éxito' | '❌ Error';
+  sender: LogSender | '✅ Éxito' | '❌ Error' | 'ℹ️ INFO;'
   message: string;
   timestamp: string;
 }

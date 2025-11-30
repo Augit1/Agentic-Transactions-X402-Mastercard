@@ -70,24 +70,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      {/* 3. Pasar la función a Navigation */}
-      <Navigation onScrollTo={handleScroll} />
-      <div className="min-h-screen bg-black">
-        <div id="hero">
-          {/* 4. Pasar la función a Hero como prop, por ejemplo, 'onStartDemoClick' */}
-          <Hero onStartDemoClick={() => handleScroll('dashboard')} /> 
-        </div>
-          <div id= "dashboard" className='pt-35'>
           <AgentDashboard  />
-        </div>
-        <div id = "journal" className='pt-20'>
-          <Journalism  />
-        </div>
-        <div id = "team" className='pt-40'>
-          <Team />
-        </div>
-        <Footer/>
-      </div>
     </>
   );
 };
