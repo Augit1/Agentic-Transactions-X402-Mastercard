@@ -163,7 +163,7 @@ npm run start:all
 *   **Augustin Bethery de La Brosse** - Fullstack Developer
 *   **Alex Michael Espinosa Males** - Fullstack Developer
 *   **Fabricio López Reyes** - Fullstack Developer & Business
-*   **Sam Cowan** - Fullstack Developer & Data Scientist
+*   **[Sam Cowan](https://github.com/samc5)** - Fullstack Developer & Data Scientist
 
 ---
 
