@@ -1,7 +1,7 @@
 # ClearWeb: Agentic Micropayments (X402 + Mastercard + BSV)
-
+### Spend Your Money, not your Attention
 > **Merge Madrid Hackathon 2025 Submission**  
-> *Spend Your Money, not your Attention*
+
 
 **ClearWeb** demonstrates a future where autonomous agents negotiate, pay, and settle transactions instantly. By combining **X402 (HTTP Payment Required)** protocols, **Mastercard** identity/authorization rails, and **BSV** blockchain settlement, we eliminate the friction of subscriptions and the clutter of advertisements.
 
