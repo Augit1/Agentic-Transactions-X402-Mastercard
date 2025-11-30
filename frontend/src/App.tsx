@@ -5,6 +5,7 @@ import AgentDashboard from './components/ui/AgentDashboard.tsx';
 import Hero from './Hero.tsx'; // Importación
 import Journalism from './Journalism.tsx';
 import Team from './Team.tsx'
+import Footer from './Footer.tsx';
 
 // Definir el tipo para la prop de desplazamiento que pasaremos
 type ScrollHandler = (targetId: string) => void; 
@@ -85,6 +86,7 @@ const App: React.FC = () => {
         <div id = "team" className='pt-40'>
           <Team />
         </div>
+        <Footer/>
       </div>
     </>
   );
