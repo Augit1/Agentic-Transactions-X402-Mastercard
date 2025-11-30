@@ -14,7 +14,7 @@ export type LogSender = (typeof LogType)[keyof typeof LogType];
 
 // Estructura de un item del log
 export interface LogItem {
-  sender: LogSender | '✅ Éxito' | '❌ Error';
+  sender: LogSender | '✅ Éxito' | '❌ Error' | 'ℹ️ INFO;'
   message: string;
   timestamp: string;
 }
@@ -52,3 +52,40 @@ export const participants: Participant[] = [
   { label: LogType.MASTERCARD, color: 'bg-red-600' },
   { label: LogType.BSV_ADAPTER, color: 'bg-green-600' },
 ];
+
+
+
+//================ Types for Journalism ================
+
+export interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string; // The full content (hidden until paid)
+  author: string;
+  category: string;
+  imageUrl: string;
+  price: number; // e.g., 0.02
+  date: string;
+}
+
+export interface WalletState {
+  balance: number;
+  currency: string;
+  isFunded: boolean;
+}
+
+export interface UserSettings {
+  maxPaymentPerArticle: number;
+  maxPaymentPerDay: number;
+  spentToday: number;
+  lastResetDate: string; // To track when to reset 'spentToday'
+}
+
+export interface Transaction {
+  id: string;
+  articleId: string;
+  amount: number;
+  timestamp: number;
+  status: 'success' | 'failed' | 'pending';
+}

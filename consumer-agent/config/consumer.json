@@ -1,0 +1,8 @@
+{
+  "id": "consumer-1",
+  "auto_pay": true,
+  "max_price_sats": 1000,
+  "allowed_currencies": ["BSV"],
+  "allowed_networks": ["bsv-mainnet"],
+  "allowed_providers": ["provider-1"]
+}

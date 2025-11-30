@@ -69,6 +69,11 @@
         }
         if (data.result) {
           appendLog("RESULT", data.result);
+		  if (data.result.access_url) {
+            appendLog("INFO", "Opening ad-free service at: " + data.result.access_url);
+            // Open in a new tab
+            window.open(data.result.access_url, "_blank", "noopener");
+          }
         }
         if (data.error) {
           appendLog("ERROR", data.error);
