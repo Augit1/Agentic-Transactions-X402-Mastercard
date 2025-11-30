@@ -1,173 +1,172 @@
-# Agentic Micropayments Using X402 + Mastercard (Mock) + BSV
+# ClearWeb: Agentic Micropayments (X402 + Mastercard + BSV)
 
-This project demonstrates **autonomous agent-to-agent micropayments** using:
+> **Merge Madrid Hackathon 2025 Submission**  
+> *Spend Your Money, not your Attention*
 
-- **X402-style payment requests & receipts**
-- **Mastercard rails (simulated auth service)**
-- **BSV (testnet) micropayment settlement**
-- **Two autonomous agents** exchanging services end-to-end
-
-Built in < 20 hours for a hackathon.  
-The goal: show how devices, bots, or AI services can **negotiate, pay, and deliver services automatically**.
+**ClearWeb** demonstrates a future where autonomous agents negotiate, pay, and settle transactions instantly. By combining **X402 (HTTP Payment Required)** protocols, **Mastercard** identity/authorization rails, and **BSV** blockchain settlement, we eliminate the friction of subscriptions and the clutter of advertisements.
 
 ---
 
-## 🧠 High-level Flow
+## 🚀 The Vision
 
-[ Consumer Agent ] –(service request)–> [ Provider Agent ]
-[ Provider Agent ] –(price + X402 req)–> [ Consumer Agent ]
-[ Consumer Agent ] –(pay())———––> [ Payment Orchestrator ]
-|—––> [ Mastercard Auth Mock ]
-|—––> [ BSV Adapter (testnet) ]
-[ Consumer Agent ] <––(receipt)——— [ Payment Orchestrator ]
-[ Consumer Agent ] –(execute + receipt)-> [ Provider Agent ]
-[ Provider Agent ] –(result)————> [ Consumer Agent ]
+The web is broken. Users are tired of:
+1.  **Subscriptions:** Committing to monthly fees for a single article.
+2.  **Ads:** Intrusive, privacy-invading trackers, cookies, advertisements
+3.  **Friction:** entering credit card details on every site.
+
+**ClearWeb solves this.**
+*   **User:** Funds a wallet *once* (via Mastercard cashback or direct load).
+*   **Agent:** Your browser (Consumer Agent) automatically negotiates with the website (Provider Agent).
+*   **Result:** You click an article, a micropayment (e.g., $0.05) happens instantly in the background, and you read ad-free premium content without your privacy being invaded.
 
 ---
 
-## 🎯 Key Components
+## 🏗 Architecture & Flow
 
-### 1. Consumer Agent (Service A)
-- Initiates service requests.
-- Requests quote from Provider Agent.
-- Triggers payment through the Payment Orchestrator.
-- Calls Provider again with the payment receipt to get the final service output.
+The system consists of four distinct microservices interacting in real-time:
 
-### 2. Provider Agent (Service B)
-- Offers a service (e.g., compute, data, API response).
-- Issues a **price** + **X402 payment request**.
-- Waits for a valid X402-style receipt before executing the service.
+1.  **frontend (React + Vite):** The user interface acting as a "Newspaper" (El Munde). It visualizes the paywall, the "annoying ad" experience, and the premium unlocked experience.
+2.  **consumer-agent:** Represents the user. It holds policy settings (max spend per day) and communicates with the provider.
+3.  **provider-agent:** Represents the publisher. It hosts content behind an **X402** paywall, generates quotes, and validates payment receipts and once validates provides urls for ad-free content.
+4.  **payment-orchestrator:** The bridge. It mocks a **Mastercard** authorization check and settles the actual value transfer on the **BSV Blockchain**
 
-### 3. Payment Orchestrator
-Handles the full payment pipeline:
-1. Calls Mastercard mock to “authorize”.
-2. Sends micropayment through BSV Adapter.
-3. Returns an **X402 payment receipt** to Consumer Agent.
-
-### 4. Mastercard Mock Service
-Simulates:
-- Card authorization
-- Amount validation
-- Replying with a simple `{ status: "APPROVED" }`
-
-### 5. BSV Adapter (testnet)
-Wraps minimal blockchain actions:
-- `sendPayment(to, amount) → txid`
-- `checkPayment(txid) → confirmed/not`
 
 ---
 
 ## 📦 Project Structure
 
-/consumer-agent/
-index.js
-routes/
-
-/provider-agent/
-index.js
-routes/
-
-/payment-orchestrator/
-orchestrator.js
-mastercard-mock.js
-bsv-adapter.js
-
-/ui/
-index.html (or React app)
-
-README.md
+```bash
+/
+├── consumer-agent/       # Node.js service acting as the buyer
+├── provider-agent/       # Node.js service acting as the seller (hosts articles)
+├── payment-orchestrator/ # Node.js service handling Mastercard Mock + BSV SDK
+├── frontend/             # React 19 + Vite + Tailwind + shadcn/ui application
+```
 
 ---
 
-## 🧪 Demo Steps
+## 🛠 Tech Stack
 
-1. **Start all services**
-   ```bash
-   npm install
-   npm run start:all
+*   **Frontend:** React, Vite, TypeScript, TailwindCSS v4, Framer Motion, Lucide Icons.
+*   **Backend:** Node.js (Express).
+*   **Blockchain:** `@bsv/sdk` for transaction building, Whatsonchain API for broadcasting.
+*   **Protocol:** Custom X402 implementation (Payment Request/Receipt headers).
+*   **Cryptography:** HMAC-SHA256 for receipt signing, ECDSA for blockchain signatures.
 
-(Or run each service in its own terminal.)
-	2.	Open the demo UI
+---
 
-http://localhost:3000
+## ⚡ Quick Start
+
+### 1. Prerequisites
+*   Node.js (v18+)
+*   NPM
+
+### 2. Installation
+Install dependencies for all microservices and the frontend.
+
+```bash
+# In the root directory
+npm install
+
+# Install frontend specific dependencies
+cd frontend
+npm install
+cd ..
+# Install agent-specific dependencies
+cd consumer-agent
+npm install
+cd ..
+cd provider-agent
+npm install
+cd ..
+cd payment-orchestrator
+npm install
+cd ..
+```
+
+### 3. Configuration
+The **Payment Orchestrator** needs a BSV Private Key (WIF) to send transactions.
+1.  Navigate to `payment-orchestrator/`.
+2.  Create a `.wif` file containing a BSV Mainnet private key with a small balance (~$0.01 is enough for testing).
+    *   *Note: If no file is found, the system will generate a random key on startup, but you will need to fund the address shown in the console.
+	If you would like us to fund your address or send a pre-funded address, send a message on telegram.*
 
 
-	3.	Click “Call Provider Service”.
-	4.	Watch logs appear:
-	•	Request created
-	•	Provider returned price
-	•	Mastercard mock AUTH APPROVED
-	•	BSV payment sent (txid shown)
-	•	X402 receipt generated
-	•	Provider executed service
-	•	Final result shown
+### 4. Run the System
+You can start all services (Consumer, Provider, Orchestrator, Frontend) with a single command:
 
-This simulates a complete autonomous micro-transaction loop.
+```bash
+npm run start:all
+```
 
-⸻
+*   **Frontend:** [http://localhost:5173](http://localhost:5173) (or the port Vite assigns)
+*   **Consumer API:** http://localhost:4001
+*   **Provider API:** http://localhost:4002
+*   **Orchestrator API:** http://localhost:4003
 
-🧩 X402 Message Formats
+---
 
-Payment Request (from Provider)
+## 🧪 Demo Guide
 
+1.  **Open the Frontend.** You will see the landing page.
+2. **Press "Call Provider Service"** to watch the logs of a live x402 interaction in the console.
+2.  **Scroll to "Use Case" (Journalism).** You are presented with a mocked newspaper, "El Munde".
+3.  **The Unfunded Experience:**
+    *   Click an article.
+    *   Since your wallet is empty, a **Paywall Modal** appears.
+    *   You can choose "View with Ads" (simulates an annoying experience) or "Unlock".
+4.  **Fund Your Wallet:**
+    *   Open the **Settings** (Gear icon in the browser bar).
+    *   "Link Mastercard": Enter mock details to simulate funding your wallet via cashback.
+5.  **The Agentic Experience:**
+    *   Go back to the newspaper.
+    *   Click a locked article.
+    *   **Magic:** The Consumer Agent detects funds, negotiates with the Provider, pays via BSV, and unlocks the content **instantly**. No popups, no ads.
+6.  **Dashboard View:**
+    *   Click "Dashboard" in the nav to see the "Under the Hood" visualization.
+    *   Click "Call Provider Service" to watch the raw JSON logs and step-by-step X402 flow between agents.
+
+---
+
+## 🧩 Key Components
+
+### X402 Message Format
+
+**Payment Request (from Provider):**
+```json
 {
-  "request_id": "abc123",
+  "request_id": "quote-173298123",
   "price": 0.001,
   "currency": "BSV",
-  "x402_payment_request": "x402://provider/abc123"
+  "x402_payment_request": {
+    "pay_to": "1Address...",
+    "amount_sats": 1000,
+    "facilitator": { "pay_endpoint": "http://orchestrator..." }
+  }
 }
+```
 
-Payment Receipt (from Orchestrator)
-
+**Payment Receipt (from Orchestrator):**
+```json
 {
-  "request_id": "abc123",
-  "txid": "bsv-testnet-txid",
+  "request_id": "quote-173298123",
+  "txid": "7832049...bsv_tx_hash",
   "amount": 0.001,
-  "payer_agent_id": "consumer-1",
-  "payee_agent_id": "provider-1",
-  "signature": "mock-signature"
+  "signature": "hmac_signature_verifying_authenticity"
 }
+```
 
+---
 
-⸻
+## 👥 The Team
 
-🚀 Why This Matters
+*   **Augustin Bethery de La Brosse** - Fullstack Developer
+*   **Alex Michael Espinosa Males** - Fullstack Developer
+*   **Fabricio López Reyes** - Fullstack Developer & Business
+*   **Sam Cowan** - Fullstack Developer & Data Scientist
 
-The world is moving toward agentic economies where:
-	•	AI models
-	•	IoT devices
-	•	Bots
-	•	Smart services
+---
 
-…autonomously buy and sell services.
+## 📜 License
 
-This prototype shows:
-	•	Smart conditions
-	•	Verified digital identity
-	•	Micropayments at machine scale
-	•	Trusted rails combined with blockchain settlement
-
-⸻
-
-🛠 Tech Stack
-	•	Node.js (Express)
-	•	HTML/JS frontend (or React)
-	•	BSV testnet SDK
-	•	Lightweight crypto signing
-	•	Docker (optional)
-
-⸻
-
-🏆 Hackathon Talking Points
-	1.	“Autonomous agents can now trustlessly transact.”
-	2.	“Mastercard’s rails provide validation + identity, while BSV provides micropayment scalability.”
-	3.	“X402 is the glue between negotiation, payment, and proof.”
-	4.	“This demo can scale to millions of machine-to-machine payments per second.”
-
-⸻
-
-📜 License
-
-MIT.
-
-⸻
+MIT License. Built for the 2025 Hackathon.
