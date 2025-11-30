@@ -12,7 +12,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, isUnlocked, onClick 
   return (
     <div 
       onClick={onClick}
-      className="group cursor-pointer bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 dark:border-slate-700 transition-all duration-300"
+      className="group cursor-pointer bg-white rounded-sm overflow-hidden shadow-sm hover:shadow-md border border-gray-200 transition-all duration-300"
     >
       <div className="relative h-48 overflow-hidden">
         <img 
@@ -31,21 +31,21 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, isUnlocked, onClick 
           </span>
         </div>
         <div className="absolute bottom-3 left-3">
-             <span className="px-2 py-1 bg-indigo-600/90 text-white text-[10px] uppercase font-bold tracking-wider rounded">
+             <span className="px-2 py-1 bg-[#005596]/90 text-white text-[10px] uppercase font-bold tracking-wider rounded-sm">
                  {article.category}
              </span>
         </div>
       </div>
       
       <div className="p-5">
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+        <div className="flex items-center justify-between text-xs text-slate-500 mb-3 font-sans border-b border-slate-100 pb-2">
           <span>{article.date}</span>
           <span>{article.author}</span>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white font-serif mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+        <h2 className="text-xl font-bold text-slate-900 font-serif mb-2 leading-tight group-hover:text-[#005596] transition-colors">
           {article.title}
         </h2>
-        <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-3 leading-relaxed">
+        <p className="text-slate-600 text-sm line-clamp-3 leading-relaxed font-serif">
           {article.excerpt}
         </p>
       </div>

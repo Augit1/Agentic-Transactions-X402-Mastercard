@@ -26,7 +26,7 @@ const Hero: React.FC<HeroProps> = ({ onStartDemoClick }) => {
       <div className="text-center px-4 sm:px-6 lg:px-7 relative z-10"> 
         {/* Título principal */}
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold bg-clip-text text-white mb-6">
-          <FadeInUp>Masterdevs</FadeInUp>
+          <FadeInUp>ClearWeb</FadeInUp>
         </h1>
         
         {/* Subtítulo */}

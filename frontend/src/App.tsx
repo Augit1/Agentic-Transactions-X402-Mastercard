@@ -30,7 +30,7 @@ const Navigation: React.FC<{ onScrollTo: ScrollHandler }> = ({ onScrollTo }) => 
           {/* Logo o Título de la Aplicación */}
           <div className="shrink-0">
             <span className="text-2xl font-bold text-white tracking-wider">
-              Master<span className="text-indigo-400">Devs</span>
+              Clear<span className="text-indigo-400">Web</span>
             </span>
           </div>
           
@@ -79,17 +79,17 @@ const App: React.FC = () => {
       </section>
       
       {/* Dashboard Section */}
-      <section id="dashboard">
+      <section id="dashboard" className='pt-30'>
         <AgentDashboard />
       </section>
       
       {/* Journalism/Paywall Section */}
-      <section id="journal">
+      <section id="journal" className='pt-30'>
         <Journalism />
       </section>
       
       {/* Team Section */}
-      <section id="team">
+      <section id="team" className='pt-30'>
         <Team />
       </section>
       
