@@ -141,8 +141,8 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
                 )}
               </div>
               <div className="text-left">
-                <p className="font-bold text-slate-900 dark:text-white">Pay ${article.price.toFixed(2)}</p>
-                <p className="text-xs text-slate-500">One-time payment. Instant access.</p>
+                <p className="font-bold text-slate-900 dark:text-white">Pay $0.05000</p>
+                <p className="text-xs text-slate-500">One-time payment. Instant access. No cookies.</p>
               </div>
             </div>
             {canAfford && !isProcessing && (
@@ -195,8 +195,8 @@ const PaywallModal: React.FC<PaywallModalProps> = ({
               <LayoutTemplate className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-slate-700 dark:text-slate-300">View with Ads</p>
-              <p className="text-xs text-slate-500">Free. Includes personalized ads.</p>
+              <p className="font-semibold text-slate-700 dark:text-slate-300">View for free</p>
+              <p className="text-xs text-slate-500">With your consent, we and our partners use cookies or similar technologies to store, access, and process personal data like your visit on this website.</p>
             </div>
           </button>
         </div>
