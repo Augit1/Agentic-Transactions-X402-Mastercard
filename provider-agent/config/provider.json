@@ -4,5 +4,6 @@
   "pay_to_address": "12294K3WwhespS9V2HAPCJUMTLppgjg3Mu",
   "default_price_sats": 100,
   "currency": "BSV",
-  "network": "bsv-mainnet"
+  "network": "bsv-mainnet",
+  "service_url": "https://google.com"
 }

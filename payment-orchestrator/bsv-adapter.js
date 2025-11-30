@@ -155,18 +155,62 @@ async function sendPayment(toAddress, amountBsv) {
 }
 
 // Verify a tx actually exists on-chain
-async function checkPayment(txid, requireConfirmed = false) {
+async function checkPayment(txid, options = {}) {
+  const {
+    requireConfirmed = false,
+    expectedAddress,
+    minSatoshis
+  } = options;
+
   console.log("BSV SDK: checkPayment called for txid:", txid);
+
   try {
     const data = await wocGet(`/tx/${txid}`);
 
     if (!data) return false;
 
+    // 1) Confirmations check (if required)
     if (requireConfirmed) {
       const conf = data.confirmations || 0;
-      return conf > 0;
+      if (conf <= 0) {
+        console.log("checkPayment: tx not confirmed yet");
+        return false;
+      }
     }
 
+    // 2) Address + amount check (if expectedAddress or minSatoshis provided)
+    if (expectedAddress || minSatoshis) {
+      const vout = data.vout || [];
+      let match = false;
+
+      for (const out of vout) {
+        const valueSats = Math.round(out.value * 1e8); // WOC value is in BSV
+        const addresses = (out.scriptPubKey && out.scriptPubKey.addresses) || [];
+
+        const addressOk = expectedAddress
+          ? addresses.includes(expectedAddress)
+          : true;
+
+        const amountOk = typeof minSatoshis === "number"
+          ? valueSats >= minSatoshis
+          : true;
+
+        if (addressOk && amountOk) {
+          match = true;
+          break;
+        }
+      }
+
+      if (!match) {
+        console.log(
+          "checkPayment: no output paying expected address/amount",
+          { expectedAddress, minSatoshis }
+        );
+        return false;
+      }
+    }
+
+    // If we reach here: tx exists, and (if requested) confirmed and matches outputs
     return true;
   } catch (e) {
     const status = e.response?.status;
@@ -174,6 +218,7 @@ async function checkPayment(txid, requireConfirmed = false) {
 
     console.error("Error in checkPayment:", body || e.message);
 
+    // WOC rate-limit → assume valid for demo purposes
     if (status === 429) {
       console.warn("WOC rate limit hit (429). Assuming tx is valid for demo purposes.");
       return true;
