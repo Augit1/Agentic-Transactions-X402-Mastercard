@@ -160,7 +160,7 @@ npm run start:all
 
 ## 👥 The Team
 
-*   **[Augustin Bethery de La Brosse](https://github.com/Augit1)** - Fullstack Developer
+*   **[Augustin Bethery de La Brosse](https://github.com/Augit1)** - Fullstack Developer & Product designer
 *   **[Alex Michael Espinosa Males](https://github.com/blex-ing)** - Fullstack Developer
 *   **[Fabricio López Reyes](https://github.com/sherlockpe)** - Fullstack Developer & Business
 *   **[Sam Cowan](https://github.com/samc5)** - Fullstack Developer & Data Scientist
@@ -169,4 +169,4 @@ npm run start:all
 
 ## 📜 License
 
-MIT License. Built for the 2025 Hackathon.
+MIT License. Built for the 2025 Merge Hackathon.
